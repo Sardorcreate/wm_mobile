@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:wm_mobile/common/functions/helper_functions.dart';
+import 'package:wm_mobile/common/widgets/app_bar_widget.dart';
 import 'package:wm_mobile/common/widgets/common_widgets.dart';
-import 'package:wm_mobile/features/auth/presentation/helpers/custom_text_field.dart';
-import 'package:wm_mobile/features/auth/presentation/helpers/or_dividers.dart';
-import 'package:wm_mobile/features/auth/presentation/helpers/primary_button.dart';
-import 'package:wm_mobile/features/auth/presentation/widgets/build_options_row.dart';
+import 'package:wm_mobile/features/auth/presentation/widgets/build_welcome_text.dart';
+import 'package:wm_mobile/features/auth/presentation/widgets/login_form.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/main_screen.dart';
 import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
 
 class LoginPage extends StatefulWidget {
@@ -68,6 +68,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     if (!mounted) return;
     setState(() => isLoading = false);
 
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MainScreen()));
+
     HelperFunctions.showSnackBar(
         'Muvaffaqiyatli kirdingiz!',
         Colors.green,
@@ -89,95 +91,28 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
-                    _buildHeaderNav(),
+                    AppBarWidget(title: "Kirish", showBackButton: false,),
                     const SizedBox(height: 40),
-                    _buildWelcomeText(),
+                    BuildWelcomeText(fade: fade, text1: "Qaytganingiz bilan", text2: "Akkauntga kiring"),
                     const SizedBox(height: 50),
-                    _buildLoginForm(),
+                    LoginForm(
+                      fade: fade,
+                      slide: slide,
+                      loginController: _loginController,
+                      passwordController: _passwordController,
+                      visiblePassword: () => setState(() => isPasswordVisible = !isPasswordVisible),
+                      remember: (value) => setState(() => rememberMe = value ?? false),
+                      handleLogin: handleLogin,
+                      isPasswordVisible: isPasswordVisible,
+                      isLoading: isLoading,
+                      rememberMe: rememberMe,
+                    ),
                     const SizedBox(height: 30),
                   ],
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderNav() {
-    return FadeTransition(
-      opacity: fade,
-      child: IconButton(
-        onPressed: () => Navigator.pop(context),
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeText() {
-    return FadeTransition(
-      opacity: fade,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Qaytganingiz bilan",
-            style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Akkauntingizga kiring",
-            style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.7)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoginForm() {
-    return SlideTransition(
-      position: slide,
-      child: FadeTransition(
-        opacity: fade,
-        child: Column(
-          children: [
-            CustomTextField(
-              controller: _loginController,
-              hint: "Login",
-              icon: Icons.person_outline_rounded,
-            ),
-            const SizedBox(height: 20),
-            CustomTextField(
-              controller: _passwordController,
-              hint: "Parol",
-              icon: Icons.lock_outline_rounded,
-              isPassword: true,
-              isPasswordVisible: isPasswordVisible,
-              onToggleVisibility: () => setState(() => isPasswordVisible = !isPasswordVisible),
-            ),
-            BuildOptionsRow(
-              rememberMe: rememberMe,
-              onRememberMeChanged: (value) => setState(() => rememberMe = value ?? false),
-              context: context,
-            ),
-            const SizedBox(height: 30),
-            PrimaryButton(
-              text: "Kirish",
-              isLoading: isLoading,
-              onPressed: handleLogin,
-            ),
-            const SizedBox(height: 24),
-            const OrDivider(),
-            const SizedBox(height: 24),
-          ],
         ),
       ),
     );

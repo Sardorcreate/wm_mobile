@@ -43,3 +43,5 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+/lib/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart
