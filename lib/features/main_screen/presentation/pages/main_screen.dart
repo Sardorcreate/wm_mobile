@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/device_details/presentation/pages/device_details.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/device_details/presentation/pages/web_view_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/settings/presentation/pages/settings.dart';
 import 'package:wm_mobile/features/main_screen/presentation/widgets/custom_header.dart';
@@ -39,8 +39,8 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const DeviceDetails(),
-      const Scanner(),
+      // const WebViewScreen(),
+      const ScannerScreen(),
       const Settings(),
     ];
 
