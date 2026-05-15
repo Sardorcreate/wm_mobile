@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/device_details/presentation/pages/web_view_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/settings/presentation/pages/settings.dart';
 import 'package:wm_mobile/features/main_screen/presentation/widgets/custom_header.dart';
@@ -57,27 +56,25 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ],
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              CustomHeader(),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeInOut,
-                  switchOutCurve: Curves.easeInOut,
-                  child: ScaleTransition(
-                    key: ValueKey(_selectedIndex),
-                    scale: _scaleAnimation,
-                    child: IndexedStack(
-                      index: _selectedIndex,
-                      children: screens,
-                    ),
+        child: Column(
+          children: [
+            CustomHeader(),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
+                child: ScaleTransition(
+                  key: ValueKey(_selectedIndex),
+                  scale: _scaleAnimation,
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: screens,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: CustomNavbar(

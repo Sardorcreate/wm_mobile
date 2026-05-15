@@ -5,7 +5,12 @@ import 'package:wm_mobile/features/splash_screen/presentation/pages/splash_scree
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(WMApp());
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.immersiveSticky,
+    overlays: [],
+  );
+
+  runApp(const WMApp());
 }
 
 class WMApp extends StatelessWidget {
@@ -16,7 +21,8 @@ class WMApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Warehouse Management',
-      home: SplashScreen(),
+      home: const SplashScreen(),
     );
   }
 }
+

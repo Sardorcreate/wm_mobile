@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:wm_mobile/common/widgets/common_widgets.dart';
 
 class WebViewScreen extends StatefulWidget {
   const WebViewScreen({
@@ -214,83 +215,96 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.title ?? widget.initialUri.host;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
           tooltip: 'Back',
+          color: Colors.white,
         ),
         title: Text(
-          title,
+          widget.title ?? widget.initialUri.host,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20
+          ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loading ? null : _reload,
             tooltip: 'Reload',
+            color: Colors.white,
           ),
         ],
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: CommonWidgets.buildBackgroundDecoration(),
+        ),
       ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_loading)
-            const ColoredBox(
-              color: Color(0x66FFFFFF),
-              child: Center(
-                child: CircularProgressIndicator(),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            WebViewWidget(controller: _controller),
+            if (_loading)
+              const ColoredBox(
+                color: Color(0x66FFFFFF),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
-            ),
-          if (_errorMessage != null)
-            Material(
-              color: Colors.black54,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        errorIcon,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white,
+            if (_errorMessage != null)
+              Material(
+                color: Colors.black54,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          errorIcon,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_errorMessage?.contains('401') == true ||
-                              _errorMessage?.contains('403') == true)
-                            TextButton(
-                              onPressed: _handleAuthError,
-                              child: const Text('Batafsil'),
-                            ),
-                          const SizedBox(width: 16),
-                          FilledButton.icon(
-                            onPressed: _reload,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Try again'),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_errorMessage?.contains('401') == true ||
+                                _errorMessage?.contains('403') == true)
+                              TextButton(
+                                onPressed: _handleAuthError,
+                                child: const Text('Batafsil'),
+                              ),
+                            const SizedBox(width: 16),
+                            FilledButton.icon(
+                              onPressed: _reload,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Try again'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

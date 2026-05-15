@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AppBarWidget extends StatelessWidget {
+class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final String title;
   final VoidCallback? onBack;
@@ -54,4 +54,7 @@ class AppBarWidget extends StatelessWidget {
       ],
     );
   }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(60); // Adjust height as needed
 }

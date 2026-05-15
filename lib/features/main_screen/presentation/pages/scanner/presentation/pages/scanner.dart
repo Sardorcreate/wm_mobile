@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wm_mobile/common/widgets/common_widgets.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/device_details/presentation/pages/web_view_screen.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/permission_request_widget.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/scanned_text_widget.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/scanner_error_widget.dart';
 import 'package:wm_mobile/utils/url_validator.dart';
 
-/// Full-screen QR scanner using the device camera.
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
 
@@ -17,13 +20,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
   late final MobileScannerController _scannerController;
   bool _hasHandledCurrentScan = false;
   bool _isCameraPermissionGranted = false;
-  String? _permissionErrorMessage;
+  String? permissionErrorMessage;
 
   @override
   void initState() {
     super.initState();
     _initializeScanner();
-    _requestCameraPermission();
+    requestCameraPermission();
   }
 
   @override
@@ -40,7 +43,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
-  Future<void> _requestCameraPermission() async {
+  Future<void> requestCameraPermission() async {
     final status = await Permission.camera.request();
     if (!mounted) return;
 
@@ -51,18 +54,18 @@ class _ScannerScreenState extends State<ScannerScreen> {
     if (status.isGranted) {
       setState(() {
         _isCameraPermissionGranted = true;
-        _permissionErrorMessage = null;
+        permissionErrorMessage = null;
       });
     } else if (status.isPermanentlyDenied) {
       setState(() {
         _isCameraPermissionGranted = false;
-        _permissionErrorMessage =
+        permissionErrorMessage =
         'Camera access is permanently denied. Enable it in system settings.';
       });
     } else {
       setState(() {
         _isCameraPermissionGranted = false;
-        _permissionErrorMessage =
+        permissionErrorMessage =
         'Camera permission is required to scan QR codes.';
       });
     }
@@ -71,7 +74,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Future<void> _openAppSettingsAndRecheckPermission() async {
     await openAppSettings();
     if (!mounted) return;
-    await _requestCameraPermission();
+    await requestCameraPermission();
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -117,6 +120,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         builder: (context) => WebViewScreen(
           initialUri: url,
           authToken: authToken,
+          title: "Qurilma ma'lumotlari",
         ),
       ),
     );
@@ -162,15 +166,30 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => _ScannedTextDialog(text: text),
+      builder: (context) => ScannedTextDialog(text: text),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Scan QR code'),
+        title: const Text(
+          "QR kod skanerlash",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent, // let gradient show
+        flexibleSpace: Container(
+          decoration: CommonWidgets.buildBackgroundDecoration(),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isCameraPermissionGranted
           ? _buildScannerView()
@@ -179,12 +198,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Widget _buildScannerView() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _buildCameraPreview(),
-        _buildScannerOverlay(),
-      ],
+    return SafeArea(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildCameraPreview(),
+          _buildScannerOverlay(),
+        ],
+      ),
     );
   }
 
@@ -192,23 +213,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
     return MobileScanner(
       controller: _scannerController,
       onDetect: _onDetect,
-      errorBuilder: (context, error) => _ScannerErrorWidget(error: error),
+      errorBuilder: (context, error) => ScannerErrorWidget(error: error),
     );
   }
 
   Widget _buildScannerOverlay() {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Card(
-            elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            decoration: CommonWidgets.buildBackgroundDecoration(),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Text(
-                'Point the camera at a QR code',
-                style: Theme.of(context).textTheme.bodyMedium,
+                "Kamerani QR kodga to'g'irlang",
+                style: const TextStyle(
+                  color: Colors.white, // white text for contrast
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -219,9 +248,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Widget _buildPermissionRequest() {
-    return _PermissionRequestWidget(
-      message: _permissionErrorMessage,
-      onRequestPermission: _requestCameraPermission,
+    return PermissionRequestWidget(
+      message: permissionErrorMessage,
+      onRequestPermission: requestCameraPermission,
       onOpenSettings: _shouldShowSettingsButton()
           ? _openAppSettingsAndRecheckPermission
           : null,
@@ -229,120 +258,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   bool _shouldShowSettingsButton() {
-    return _permissionErrorMessage != null &&
-        _permissionErrorMessage!.contains('settings');
-  }
-}
-
-class _ScannedTextDialog extends StatelessWidget {
-  const _ScannedTextDialog({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Scanned content'),
-      content: SelectionArea(
-        child: SingleChildScrollView(
-          child: Text(text),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-class _ScannerErrorWidget extends StatelessWidget {
-  const _ScannerErrorWidget({required this.error});
-
-  final MobileScannerException error;
-
-  @override
-  Widget build(BuildContext context) {
-    final errorMessage = error.errorDetails?.message ?? error.toString();
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.videocam_off, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              'Camera error',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              child: const Text('Go back'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PermissionRequestWidget extends StatelessWidget {
-  const _PermissionRequestWidget({
-    required this.onRequestPermission,
-    this.message,
-    this.onOpenSettings,
-  });
-
-  final String? message;
-  final VoidCallback onRequestPermission;
-  final VoidCallback? onOpenSettings;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.camera_alt_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              message ?? 'Requesting camera access…',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onRequestPermission,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
-            ),
-            if (onOpenSettings != null) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: onOpenSettings,
-                icon: const Icon(Icons.settings),
-                label: const Text('Open settings'),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+    return permissionErrorMessage != null &&
+        permissionErrorMessage!.contains('settings');
   }
 }
