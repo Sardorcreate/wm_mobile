@@ -198,14 +198,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Widget _buildScannerView() {
-    return SafeArea(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildCameraPreview(),
-          _buildScannerOverlay(),
-        ],
-      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildCameraPreview(),
+        _buildScannerOverlay(),
+      ],
     );
   }
 

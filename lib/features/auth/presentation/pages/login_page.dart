@@ -122,48 +122,47 @@ class _LoginPageState extends State<LoginPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       body: Container(
         decoration: CommonWidgets.buildBackgroundDecoration(),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              const BackgroundOrbs(),
-              SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    const AppBarWidget(title: "Kirish", showBackButton: false),
-                    const SizedBox(height: 40),
-                    BuildWelcomeText(
-                      fade: fade,
-                      text1: "Qaytganingiz bilan",
-                      text2: "Akkauntga kiring",
+        child: Stack(
+          children: [
+            const BackgroundOrbs(),
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  const AppBarWidget(title: "Kirish", showBackButton: false),
+                  const SizedBox(height: 40),
+                  BuildWelcomeText(
+                    fade: fade,
+                    text1: "Qaytganingiz bilan",
+                    text2: "Akkauntga kiring",
+                  ),
+                  const SizedBox(height: 50),
+                  LoginForm(
+                    fade: fade,
+                    slide: slide,
+                    loginController: _loginController,
+                    passwordController: _passwordController,
+                    visiblePassword: () => setState(
+                          () => isPasswordVisible = !isPasswordVisible,
                     ),
-                    const SizedBox(height: 50),
-                    LoginForm(
-                      fade: fade,
-                      slide: slide,
-                      loginController: _loginController,
-                      passwordController: _passwordController,
-                      visiblePassword: () => setState(
-                            () => isPasswordVisible = !isPasswordVisible,
-                      ),
-                      remember: (value) =>
-                          setState(() => rememberMe = value ?? false),
-                      handleLogin: handleLogin,
-                      isPasswordVisible: isPasswordVisible,
-                      isLoading: isLoading,
-                      rememberMe: rememberMe,
-                    ),
-                    const SizedBox(height: 30),
-                  ],
-                ),
+                    remember: (value) =>
+                        setState(() => rememberMe = value ?? false),
+                    handleLogin: handleLogin,
+                    isPasswordVisible: isPasswordVisible,
+                    isLoading: isLoading,
+                    rememberMe: rememberMe,
+                  ),
+                  const SizedBox(height: 30),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

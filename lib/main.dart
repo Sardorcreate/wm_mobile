@@ -4,11 +4,14 @@ import 'package:wm_mobile/features/splash_screen/presentation/pages/splash_scree
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.immersiveSticky,
-    overlays: [],
-  );
+
+  // Makes the notch area transparent so your app draws through it
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+  ));
 
   runApp(const WMApp());
 }

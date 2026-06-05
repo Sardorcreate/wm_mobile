@@ -247,64 +247,62 @@ class _WebViewScreenState extends State<WebViewScreen> {
           decoration: CommonWidgets.buildBackgroundDecoration(),
         ),
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (_loading)
-              const ColoredBox(
-                color: Color(0x66FFFFFF),
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_loading)
+            const ColoredBox(
+              color: Color(0x66FFFFFF),
+              child: Center(
+                child: CircularProgressIndicator(),
               ),
-            if (_errorMessage != null)
-              Material(
-                color: Colors.black54,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          errorIcon,
-                          size: 48,
-                          color: Theme.of(context).colorScheme.error,
+            ),
+          if (_errorMessage != null)
+            Material(
+              color: Colors.black54,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        errorIcon,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (_errorMessage?.contains('401') == true ||
-                                _errorMessage?.contains('403') == true)
-                              TextButton(
-                                onPressed: _handleAuthError,
-                                child: const Text('Batafsil'),
-                              ),
-                            const SizedBox(width: 16),
-                            FilledButton.icon(
-                              onPressed: _reload,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Try again'),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_errorMessage?.contains('401') == true ||
+                              _errorMessage?.contains('403') == true)
+                            TextButton(
+                              onPressed: _handleAuthError,
+                              child: const Text('Batafsil'),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 16),
+                          FilledButton.icon(
+                            onPressed: _reload,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try again'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
