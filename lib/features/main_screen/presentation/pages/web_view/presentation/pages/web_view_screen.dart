@@ -93,12 +93,18 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     final jsCode = '''
       (function() {
+        const baseHost = '${widget.initialUri.host}';
+        const basePort = '${widget.initialUri.port}' ? ':' + '${widget.initialUri.port}' : '';
+        const protocol = baseHost.includes('localhost') || baseHost.includes('127.0.0.1') ? 'http://' : 'https://';
+        const prodBaseUrl = protocol + baseHost + basePort;
+    
         window.AUTH_TOKEN = '${widget.authToken}';
-        window.API_BASE_URL = 'http://${widget.initialUri.host}:8080';
+        window.API_BASE_URL = prodBaseUrl;
         
-        document.cookie = 'auth_token=${widget.authToken}; path=/; max-age=2592000; SameSite=Lax';
-        document.cookie = 'token=${widget.authToken}; path=/; max-age=2592000; SameSite=Lax';
-        document.cookie = 'session=${widget.authToken}; path=/; max-age=2592000; SameSite=Lax';
+        const cookieFlags = '; path=/; max-age=2592000; SameSite=Lax; Secure';
+        document.cookie = 'auth_token=${widget.authToken}' + cookieFlags;
+        document.cookie = 'token=${widget.authToken}' + cookieFlags;
+        document.cookie = 'session=${widget.authToken}' + cookieFlags;
         
         try {
           localStorage.setItem('auth_token', '${widget.authToken}');
@@ -109,27 +115,31 @@ class _WebViewScreenState extends State<WebViewScreen> {
         
         var originalFetch = window.fetch;
         window.fetch = function(url, options) {
-          if (!options) {
-            options = { method: 'GET', headers: {} };
-          }
+          options = options || { method: 'GET', headers: {} };
+          
           if (!options.headers) {
             options.headers = {};
           }
           
+          let targetUrl = url;
+          
           if (typeof url === 'string') {
             if (url.startsWith('/api/') || url.startsWith('/auth/') || url.startsWith('/tools/')) {
-              url = 'http://${widget.initialUri.host}:8080' + url;
+              targetUrl = prodBaseUrl + url;
             } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
-              url = url.replace(/localhost|127\\.0\\.0\\.1/g, '${widget.initialUri.host}');
+              targetUrl = url.replace(/localhost|127\\.0\\.0\\.1/g, baseHost);
             }
           } else if (url instanceof Request) {
             var originalUrl = url.url;
             if (originalUrl.startsWith('/api/') || originalUrl.startsWith('/auth/') || originalUrl.startsWith('/tools/')) {
-              var newUrl = 'http://${widget.initialUri.host}:8080' + originalUrl;
-              options.headers = new Headers(url.headers);
-              options.headers.set('Authorization', 'Bearer ${widget.authToken}');
-              url = new Request(newUrl, options);
-              return originalFetch.call(this, url);
+              var newUrl = prodBaseUrl + originalUrl;
+              
+              const newHeaders = new Headers(url.headers);
+              newHeaders.set('Authorization', 'Bearer ${widget.authToken}');
+              
+              options.headers = newHeaders;
+              targetUrl = new Request(newUrl, options);
+              return originalFetch.call(this, targetUrl);
             }
           }
           
@@ -143,7 +153,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             }
           } catch(e) {}
           
-          return originalFetch.call(window, url, options);
+          return originalFetch.call(window, targetUrl, options);
         };
         
         var XHR = XMLHttpRequest.prototype;
@@ -154,9 +164,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
           this._method = method;
           if (typeof url === 'string') {
             if (url.startsWith('/api/') || url.startsWith('/auth/') || url.startsWith('/tools/')) {
-              url = 'http://${widget.initialUri.host}:8080' + url;
+              url = prodBaseUrl + url;
             } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
-              url = url.replace(/localhost|127\\.0\\.0\\.1/g, '${widget.initialUri.host}');
+              url = url.replace(/localhost|127\\.0\\.0\\.1/g, baseHost);
             }
           }
           this._url = url;
@@ -164,8 +174,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
         };
         
         XHR.send = function(body) {
-          this.setRequestHeader('Authorization', 'Bearer ${widget.authToken}');
-          this.setRequestHeader('X-Auth-Token', '${widget.authToken}');
+          try {
+            this.setRequestHeader('Authorization', 'Bearer ${widget.authToken}');
+            this.setRequestHeader('X-Auth-Token', '${widget.authToken}');
+          } catch(e) {}
           return originalSend.call(this, body);
         };
       })();

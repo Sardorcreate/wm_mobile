@@ -5,6 +5,7 @@ import 'package:wm_mobile/common/widgets/common_widgets.dart';
 import 'package:wm_mobile/features/auth/controller/auth_guard.dart';
 import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/pages/login_page.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/main_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
 import 'package:wm_mobile/features/splash_screen/presentation/widgets/splash_screen_widgets.dart';
@@ -32,7 +33,6 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   // ── Animations ─────────────────────────────────────────────────────────────
-  // Unchanged from your original.
 
   void _setupAnimations() {
     _controller = AnimationController(
@@ -56,9 +56,6 @@ class _SplashScreenState extends State<SplashScreen>
   // ── Auth check ─────────────────────────────────────────────────────────────
 
   Future<void> _checkAuthAndNavigate() async {
-    // Run the minimum display time and the auth check in parallel so we never
-    // wait longer than necessary. The splash shows for at least 4 seconds
-    // regardless of how fast the network responds (matching your original timer).
     final results = await Future.wait([
       Future.delayed(const Duration(seconds: 4)),
       AuthService.instance.shouldAutoLogin(),
@@ -69,14 +66,12 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (autoLogin) {
-      // Valid remembered session → go straight to scanner.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const AuthGuard(child: ScannerScreen()),
+          builder: (_) => const AuthGuard(child: MainScreen()),
         ),
       );
     } else {
-      // No session, rememberMe off, or token expired → show login.
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginPage()),
       );
@@ -92,7 +87,6 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
-  // Identical to your original — same widgets, same layout.
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wm_mobile/common/widgets/common_widgets.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/device_details/presentation/pages/web_view_screen.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/web_view/presentation/pages/web_view_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/permission_request_widget.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/scanned_text_widget.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/widgets/scanner_error_widget.dart';
@@ -60,7 +60,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       setState(() {
         _isCameraPermissionGranted = false;
         permissionErrorMessage =
-        'Camera access is permanently denied. Enable it in system settings.';
+        'Camera access is permanently denied. Enable it in system profile.';
       });
     } else {
       setState(() {
@@ -257,6 +257,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   bool _shouldShowSettingsButton() {
     return permissionErrorMessage != null &&
-        permissionErrorMessage!.contains('settings');
+        permissionErrorMessage!.contains('profile');
   }
 }

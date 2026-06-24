@@ -43,7 +43,7 @@ class PermissionRequestWidget extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onOpenSettings,
                   icon: const Icon(Icons.settings),
-                  label: const Text('Open settings'),
+                  label: const Text('Open profile'),
                 ),
               ],
             ],
