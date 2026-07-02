@@ -19,8 +19,8 @@ class _MainScreenState extends State<MainScreen>
   late Animation<double> _scaleAnimation;
 
   static const _navItems = [
-    _NavItem(icon: Icons.qr_code_scanner_rounded, label: 'Skaner'),
     _NavItem(icon: Icons.build_rounded,            label: 'Jihozlar'),
+    _NavItem(icon: Icons.qr_code_scanner_rounded, label: 'Skaner'),
     _NavItem(icon: Icons.person_rounded,           label: 'Profil'),
   ];
 
@@ -57,8 +57,8 @@ class _MainScreenState extends State<MainScreen>
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const ScannerScreen(),
       const ToolsScreen(),
+      const ScannerScreen(),
       const ProfileScreen(),
     ];
 
