@@ -6,6 +6,7 @@ import 'package:wm_mobile/features/auth/controller/auth_guard.dart';
 import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/widgets/build_welcome_text.dart';
 import 'package:wm_mobile/features/auth/presentation/widgets/login_form.dart';
+import 'package:wm_mobile/features/main_screen/presentation/pages/main_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
 
@@ -85,7 +86,6 @@ class _LoginPageState extends State<LoginPage>
     setState(() => isLoading = true);
 
     try {
-      // AuthService.login() throws AuthException on any failure.
       final token = await AuthService.instance.login(username, password);
 
       await AuthService.instance.saveToken(
@@ -97,14 +97,12 @@ class _LoginPageState extends State<LoginPage>
       if (!mounted) return;
       setState(() => isLoading = false);
 
-      // Short pause so the loading indicator doesn't flash.
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          // Wrap ScannerScreen in AuthGuard so mid-session expiry is handled.
-          builder: (_) => const AuthGuard(child: ScannerScreen()),
+          builder: (_) => const AuthGuard(child: MainScreen()),
         ),
             (route) => false,
       );

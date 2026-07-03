@@ -95,13 +95,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
       (function() {
         const baseHost = '${widget.initialUri.host}';
         const basePort = '${widget.initialUri.port}' ? ':' + '${widget.initialUri.port}' : '';
-        const protocol = baseHost.includes('localhost') || baseHost.includes('127.0.0.1') ? 'http://' : 'https://';
+        const protocol = '${widget.initialUri.scheme}://';
         const prodBaseUrl = protocol + baseHost + basePort;
     
         window.AUTH_TOKEN = '${widget.authToken}';
         window.API_BASE_URL = prodBaseUrl;
         
-        const cookieFlags = '; path=/; max-age=2592000; SameSite=Lax; Secure';
+        const cookieFlags = '; path=/; max-age=2592000; SameSite=Lax';
         document.cookie = 'auth_token=${widget.authToken}' + cookieFlags;
         document.cookie = 'token=${widget.authToken}' + cookieFlags;
         document.cookie = 'session=${widget.authToken}' + cookieFlags;

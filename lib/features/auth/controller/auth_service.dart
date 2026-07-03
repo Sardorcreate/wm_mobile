@@ -18,7 +18,7 @@ class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
-  static const _baseUrl = 'http://10.203.37.171:8080';
+  static const _baseUrl = 'http://172.31.20.5:8080';
 
   // ── Token storage ────────────────────────────────────────────────────────
 
@@ -60,7 +60,6 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_Keys.authToken);
     await prefs.remove(_Keys.rememberMe);
-    // Keep savedLogin so the username field can be pre-filled on next open.
   }
 
   // ── Token validation ─────────────────────────────────────────────────────
@@ -99,6 +98,21 @@ class AuthService {
     }
   }
 
+  bool _isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      ) as Map<String, dynamic>;
+      final exp = payload['exp'] as int?;
+      if (exp == null) return false;
+      return DateTime.now().millisecondsSinceEpoch >= exp * 1000;
+    } catch (_) {
+      return true; // malformed token -> treat as invalid
+    }
+  }
+
   /// Checks rememberMe flag, retrieves stored token and validates it.
   ///
   /// Returns:
@@ -111,9 +125,9 @@ class AuthService {
     final token = await getToken();
     if (token == null || token.isEmpty) return false;
 
+    if (_isJwtExpired(token)) return false;
+
     final valid = await validateToken(token);
-    // null means network is down → give benefit of the doubt and let user in.
-    // The AuthGuard will catch expiry once connectivity is restored.
     return valid != false;
   }
 

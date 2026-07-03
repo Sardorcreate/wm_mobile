@@ -30,7 +30,6 @@ class AuthGuard extends StatefulWidget {
 
   final Widget child;
 
-  /// How often to re-validate the token in the background.
   final Duration checkInterval;
 
   @override
@@ -45,7 +44,6 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // First check shortly after the screen mounts.
     WidgetsBinding.instance.addPostFrameCallback((_) => _startPeriodicCheck());
   }
 
@@ -56,7 +54,6 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Re-validate when the app comes back to the foreground.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -65,7 +62,7 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
   }
 
   void _startPeriodicCheck() {
-    _validateNow(); // immediate check
+    _validateNow();
     _timer = Timer.periodic(widget.checkInterval, (_) => _validateNow());
   }
 
@@ -81,9 +78,6 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
       }
 
       final result = await AuthService.instance.validateToken(token);
-      // null  → network problem, skip
-      // true  → still valid, do nothing
-      // false → expired, redirect
       if (result == false) _handleExpiry();
     } finally {
       _isChecking = false;
@@ -96,7 +90,6 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
 
     if (!mounted) return;
 
-    // Show a brief snackbar so the user knows why they were redirected.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Sessiya tugadi. Iltimos, qayta kiring.'),

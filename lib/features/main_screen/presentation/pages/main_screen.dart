@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/profile/presentation/pages/profile_screen.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/tools/presentation/pages/tools_screen.dart';
@@ -18,6 +19,9 @@ class _MainScreenState extends State<MainScreen>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
+  String? _token;
+  bool _isLoadingToken = true;
+
   static const _navItems = [
     _NavItem(icon: Icons.build_rounded,            label: 'Jihozlar'),
     _NavItem(icon: Icons.qr_code_scanner_rounded, label: 'Skaner'),
@@ -27,6 +31,7 @@ class _MainScreenState extends State<MainScreen>
   @override
   void initState() {
     super.initState();
+    _loadSavedToken();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 350),
       vsync: this,
@@ -54,16 +59,32 @@ class _MainScreenState extends State<MainScreen>
       ..forward();
   }
 
+  Future<void> _loadSavedToken() async {
+    try {
+      final savedToken = await AuthService.instance.getToken();
+      setState(() {
+        _token = savedToken;
+        _isLoadingToken = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingToken = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const ToolsScreen(),
+      ToolsScreen(
+        initialUri: Uri.parse("http://172.31.20.5:8080/exist.html")
+            .replace(queryParameters: {if (_token != null) 'token': _token!}),
+        authToken: _token,
+      ),
       const ScannerScreen(),
       const ProfileScreen(),
     ];
 
     return Scaffold(
-      extendBody: true, // lets gradient bleed behind the nav bar
+      extendBody: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -78,7 +99,6 @@ class _MainScreenState extends State<MainScreen>
         ),
         child: Stack(
           children: [
-            // Same ambient orbs used by splash & login
             const BackgroundOrbs(),
             SafeArea(
               bottom: false,
