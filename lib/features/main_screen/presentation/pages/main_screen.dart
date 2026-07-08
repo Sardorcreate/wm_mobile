@@ -75,7 +75,7 @@ class _MainScreenState extends State<MainScreen>
   Widget build(BuildContext context) {
     final screens = [
       ToolsScreen(
-        initialUri: Uri.parse("http://172.31.20.5:8080/exist.html")
+        initialUri: Uri.parse("http://172.31.20.171:8080/exist.html")
             .replace(queryParameters: {if (_token != null) 'token': _token!}),
         authToken: _token,
       ),

@@ -7,7 +7,6 @@ import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/widgets/build_welcome_text.dart';
 import 'package:wm_mobile/features/auth/presentation/widgets/login_form.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/main_screen.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
 import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
 
 class LoginPage extends StatefulWidget {

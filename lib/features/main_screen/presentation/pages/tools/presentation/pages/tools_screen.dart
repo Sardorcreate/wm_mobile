@@ -110,14 +110,28 @@ class _ToolsScreenState extends State<ToolsScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: WebViewWidget(
-              controller: _controller,
-              gestureRecognizers: {
-                Factory<VerticalDragGestureRecognizer>(
-                      () => VerticalDragGestureRecognizer(),
-                ),
-              },
+          PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) async {
+              if (didPop) return;
+
+              if (await _controller.canGoBack()) {
+                await _controller.goBack();
+              } else {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              }
+            },
+            child: Positioned.fill(
+              child: WebViewWidget(
+                controller: _controller,
+                gestureRecognizers: {
+                  Factory<VerticalDragGestureRecognizer>(
+                        () => VerticalDragGestureRecognizer(),
+                  ),
+                },
+              ),
             ),
           ),
           if (_loading)

@@ -18,7 +18,7 @@ class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
-  static const _baseUrl = 'http://172.31.20.5:8080';
+  static const _baseUrl = 'http://172.31.20.171:8080';
 
   // ── Token storage ────────────────────────────────────────────────────────
 
