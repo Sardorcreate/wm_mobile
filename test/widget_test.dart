@@ -1,30 +1,48 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:wm_mobile/main.dart';
+import 'package:wm_mobile/core/web/web_auth_bridge.dart';
+import 'package:wm_mobile/utils/url_validator.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('parseBrowsableUrl', () {
+    test('accepts absolute http and https URLs', () {
+      expect(
+        parseBrowsableUrl('https://example.com/a?b=1').toString(),
+        'https://example.com/a?b=1',
+      );
+      expect(parseBrowsableUrl('http://10.0.0.2:8080/x')?.host, '10.0.0.2');
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('assumes https for scheme-less payloads', () {
+      expect(parseBrowsableUrl('example.com/path')?.scheme, 'https');
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('rejects empty, null and non-browsable payloads', () {
+      expect(parseBrowsableUrl(null), isNull);
+      expect(parseBrowsableUrl('   '), isNull);
+      expect(parseBrowsableUrl('mailto://someone@example.com'), isNull);
+    });
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('WebAuthBridge.origin', () {
+    // The previous inline script always appended a port, because
+    // `'$port' ? ... : ''` is truthy for the scheme's default port too.
+    test('omits the port when it is the scheme default', () {
+      expect(
+        WebAuthBridge.origin(Uri.parse('https://wm.example.com/page')),
+        'https://wm.example.com',
+      );
+      expect(
+        WebAuthBridge.origin(Uri.parse('http://wm.example.com/page')),
+        'http://wm.example.com',
+      );
+    });
+
+    test('keeps an explicit non-default port', () {
+      expect(
+        WebAuthBridge.origin(Uri.parse('http://10.224.81.171:8080/exist.html')),
+        'http://10.224.81.171:8080',
+      );
+    });
   });
 }

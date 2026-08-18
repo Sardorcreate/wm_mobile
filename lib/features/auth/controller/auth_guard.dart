@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:wm_mobile/core/feedback/app_snack_bar.dart';
+import 'package:wm_mobile/core/navigation/app_routes.dart';
 import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/pages/login_page.dart';
 
@@ -90,19 +92,11 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sessiya tugadi. Iltimos, qayta kiring.'),
-        backgroundColor: Colors.orange,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-      ),
-    );
+    AppSnackBar.warning(context, 'Sessiya tugadi. Iltimos, qayta kiring.');
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-    );
+    Navigator.of(
+      context,
+    ).pushAndRemoveUntil(appRoute<void>(const LoginPage()), (route) => false);
   }
 
   @override

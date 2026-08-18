@@ -1,14 +1,18 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:wm_mobile/common/widgets/common_widgets.dart';
+
+import 'package:wm_mobile/core/navigation/app_routes.dart';
+import 'package:wm_mobile/core/theme/app_motion.dart';
 import 'package:wm_mobile/features/auth/controller/auth_guard.dart';
 import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:wm_mobile/features/main_screen/presentation/pages/main_screen.dart';
-import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
-import 'package:wm_mobile/features/splash_screen/presentation/widgets/splash_screen_widgets.dart';
+import 'package:wm_mobile/features/splash_screen/presentation/widgets/splash_content.dart';
 
+/// Brand moment + auth resolution.
+///
+/// The old version always waited a flat 4 seconds. Now it waits for the
+/// intro animation to land (~1.8s) and no longer than that if the auth check
+/// has already returned — the splash is a floor, not a fixed toll.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -18,66 +22,31 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  static const Duration _minimumDisplay = Duration(milliseconds: 1800);
 
-  late final Animation<double> fade;
-  late final Animation<double> scale;
-  late final Animation<Offset> slide;
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: AppMotion.hero,
+  )..forward();
+
+  bool _logoPrecached = false;
 
   @override
   void initState() {
     super.initState();
-    _setupAnimations();
-    _checkAuthAndNavigate();
+    _resolveDestination();
   }
 
-  // ── Animations ─────────────────────────────────────────────────────────────
-
-  void _setupAnimations() {
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-
-    scale = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
-    );
-
-    slide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
-
-    _controller.forward();
-  }
-
-  // ── Auth check ─────────────────────────────────────────────────────────────
-
-  Future<void> _checkAuthAndNavigate() async {
-    final results = await Future.wait([
-      Future.delayed(const Duration(seconds: 4)),
-      AuthService.instance.shouldAutoLogin(),
-    ]);
-
-    final autoLogin = results[1] as bool;
-
-    if (!mounted) return;
-
-    if (autoLogin) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const AuthGuard(child: MainScreen()),
-        ),
-      );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Warm the image cache here rather than on first paint, so the logo never
+    // pops in a frame late.
+    if (!_logoPrecached) {
+      _logoPrecached = true;
+      precacheImage(const AssetImage('assets/images/logo.png'), context);
     }
   }
-
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -85,21 +54,26 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
+  Future<void> _resolveDestination() async {
+    final results = await Future.wait<Object?>([
+      Future<void>.delayed(_minimumDisplay),
+      AuthService.instance.shouldAutoLogin(),
+    ]);
+
+    if (!mounted) return;
+
+    final autoLogin = results[1]! as bool;
+
+    Navigator.of(context).pushReplacement(
+      appRoute<void>(
+        autoLogin ? const AuthGuard(child: MainScreen()) : const LoginPage(),
+        transition: AppTransition.fadeThrough,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: CommonWidgets.buildBackgroundDecoration(),
-        child: Stack(
-          children: [
-            const BackgroundOrbs(),
-            SplashScreenWidgets.buildMainContent(fade, scale, slide),
-            SplashScreenWidgets.buildFooter(fade),
-          ],
-        ),
-      ),
-    );
+    return Scaffold(body: SplashContent(controller: _controller));
   }
 }

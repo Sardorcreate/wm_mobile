@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:wm_mobile/features/auth/controller/auth_service.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/profile/presentation/pages/profile_screen.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/scanner/presentation/pages/scanner.dart';
-import 'package:wm_mobile/features/main_screen/presentation/pages/tools/presentation/pages/tools_screen.dart';
-import 'package:wm_mobile/features/main_screen/presentation/widgets/custom_header.dart';
-import 'package:wm_mobile/features/splash_screen/presentation/helpers/background_orb.dart';
 
+import 'package:wm_mobile/core/config/app_config.dart';
+import 'package:wm_mobile/core/theme/app_motion.dart';
+import 'package:wm_mobile/features/auth/controller/auth_service.dart';
+import 'package:wm_mobile/features/main_screen/presentation/widgets/app_nav_bar.dart';
+import 'package:wm_mobile/features/main_screen/presentation/widgets/custom_header.dart';
+import 'profile/presentation/pages/profile_screen.dart';
+import 'scanner/presentation/pages/scanner.dart';
+import 'tools/presentation/pages/tools_screen.dart';
+
+/// Tab shell.
+///
+/// The three destinations are built once, after the token resolves, and then
+/// kept alive in an [IndexedStack]. The old version rebuilt the list — and with
+/// it a fresh `Uri` for the WebView — on every `setState`, which re-triggered
+/// WebView work on each tab change.
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -15,215 +24,127 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
-  String? _token;
-  bool _isLoadingToken = true;
-
-  static const _navItems = [
-    _NavItem(icon: Icons.build_rounded,            label: 'Jihozlar'),
-    _NavItem(icon: Icons.qr_code_scanner_rounded, label: 'Skaner'),
-    _NavItem(icon: Icons.person_rounded,           label: 'Profil'),
+  static const List<NavDestination> _destinations = [
+    NavDestination(icon: Icons.grid_view_rounded, label: 'Jihozlar'),
+    NavDestination(icon: Icons.qr_code_scanner_rounded, label: 'Skaner'),
+    NavDestination(icon: Icons.person_rounded, label: 'Profil'),
   ];
+
+  int _selectedIndex = 0;
+
+  /// Direction of the last tab change; drives which way content slides in.
+  int _direction = 1;
+
+  bool _tokenResolved = false;
+  String? _token;
+
+  /// Built once so the WebView is never handed a new `Uri` instance.
+  Uri? _toolsUri;
+
+  late final AnimationController _switchController = AnimationController(
+    vsync: this,
+    duration: AppMotion.medium,
+  )..value = 1;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedToken();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 350),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-    _animationController.forward();
+    _buildScreens();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _switchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _buildScreens() async {
+    String? token;
+    try {
+      token = await AuthService.instance.getToken();
+    } catch (_) {
+      token = null;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _tokenResolved = true;
+      _token = token;
+      _toolsUri = AppConfig.toolsUri(token: token);
+    });
   }
 
   void _onNavTap(int index) {
     if (index == _selectedIndex) return;
-    setState(() => _selectedIndex = index);
-    _animationController
+    setState(() {
+      _direction = index > _selectedIndex ? 1 : -1;
+      _selectedIndex = index;
+    });
+    _switchController
       ..reset()
       ..forward();
   }
 
-  Future<void> _loadSavedToken() async {
-    try {
-      final savedToken = await AuthService.instance.getToken();
-      setState(() {
-        _token = savedToken;
-        _isLoadingToken = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingToken = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      ToolsScreen(
-        initialUri: Uri.parse("http://172.31.20.171:8080/exist.html")
-            .replace(queryParameters: {if (_token != null) 'token': _token!}),
-        authToken: _token,
-      ),
-      const ScannerScreen(),
-      const ProfileScreen(),
-    ];
-
     return Scaffold(
       extendBody: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1A237E),
-              Color(0xFF0D47A1),
-              Color(0xFF01579B),
-            ],
-          ),
-        ),
-        child: Stack(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            const BackgroundOrbs(),
-            SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  const CustomHeader(),
-                  Expanded(
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: IndexedStack(
-                        index: _selectedIndex,
-                        children: screens,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            CustomHeader(
+              title: _destinations[_selectedIndex].label,
+              showGreeting: _selectedIndex == 0,
             ),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
-      bottomNavigationBar: _BottomNav(
+      bottomNavigationBar: AppNavBar(
+        destinations: _destinations,
         selectedIndex: _selectedIndex,
-        items: _navItems,
         onTap: _onNavTap,
       ),
     );
   }
-}
 
-// ── Bottom nav ───────────────────────────────────────────────────────────────
-
-class _NavItem {
-  const _NavItem({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-}
-
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({
-    required this.selectedIndex,
-    required this.items,
-    required this.onTap,
-  });
-
-  final int selectedIndex;
-  final List<_NavItem> items;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF0D47A1), Color(0xFF01579B)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-        border: const Border(
-          top: BorderSide(color: Colors.white12, width: 0.5),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
+  Widget _buildBody() {
+    if (!_tokenResolved) {
+      return const Center(
         child: SizedBox(
-          height: 64,
-          child: Row(
-            children: List.generate(items.length, (i) {
-              final selected = i == selectedIndex;
-              return Expanded(
-                child: InkWell(
-                  onTap: () => onTap(i),
-                  splashColor: Colors.white10,
-                  highlightColor: Colors.white10,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? Colors.white.withOpacity(0.15)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Icon(
-                            items[i].icon,
-                            color: selected
-                                ? Colors.white
-                                : Colors.white54,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            color: selected ? Colors.white : Colors.white54,
-                            fontSize: 11,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                          child: Text(items[i].label),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
+          height: 32,
+          width: 32,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
+      );
+    }
+
+    final enter = CurvedAnimation(
+      parent: _switchController,
+      curve: AppMotion.emphasized,
+    );
+
+    // IndexedStack keeps every tab's state (scroll position, WebView history)
+    // while the transition animates only the visible one. The scanner is told
+    // when it is off-screen so it can release the camera instead of burning
+    // battery behind the other tabs.
+    return FadeTransition(
+      opacity: enter,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(0.05 * _direction, 0),
+          end: Offset.zero,
+        ).animate(enter),
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            ToolsScreen(initialUri: _toolsUri!, authToken: _token),
+            ScannerScreen(isActive: _selectedIndex == 1),
+            const ProfileScreen(),
+          ],
         ),
       ),
     );

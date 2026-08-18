@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:wm_mobile/core/config/app_config.dart';
+
 /// Keys used in SharedPreferences.
 abstract class _Keys {
   static const authToken = 'auth_token';
@@ -18,16 +20,14 @@ class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
-  static const _baseUrl = 'http://172.31.20.171:8080';
-
   // ── Token storage ────────────────────────────────────────────────────────
 
   /// Persists [token]. Saves login username too when [rememberMe] is true.
   Future<void> saveToken(
-      String token, {
-        required bool rememberMe,
-        String? login,
-      }) async {
+    String token, {
+    required bool rememberMe,
+    String? login,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_Keys.authToken, token);
     await prefs.setBool(_Keys.rememberMe, rememberMe);
@@ -72,16 +72,20 @@ class AuthService {
   ///   - 200                                 → returns true
   Future<bool?> validateToken(String token) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/validate_token'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            AppConfig.validateTokenUri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) return true;
-      if (response.statusCode == 401 || response.statusCode == 403) return false;
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        return false;
+      }
 
       // Any other status — treat as unknown.
       debugPrint('AuthService: unexpected status ${response.statusCode}');
@@ -102,9 +106,11 @@ class AuthService {
     try {
       final parts = token.split('.');
       if (parts.length != 3) return true;
-      final payload = jsonDecode(
-        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-      ) as Map<String, dynamic>;
+      final payload =
+          jsonDecode(
+                utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+              )
+              as Map<String, dynamic>;
       final exp = payload['exp'] as int?;
       if (exp == null) return false;
       return DateTime.now().millisecondsSinceEpoch >= exp * 1000;
@@ -139,11 +145,13 @@ class AuthService {
     late http.Response response;
 
     try {
-      response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'login': username, 'password': password}),
-      ).timeout(const Duration(seconds: 15));
+      response = await http
+          .post(
+            AppConfig.loginUri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'login': username, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 15));
     } on SocketException {
       throw AuthException('Server topilmadi. Tarmoqni tekshiring.');
     } on TimeoutException {
@@ -154,20 +162,71 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final token = data['token']
-          ?? data['access_token']
-          ?? data['accessToken']
-          ?? data['jwt']
-          ?? data['authorization'];
+      final token =
+          data['token'] ??
+          data['access_token'] ??
+          data['accessToken'] ??
+          data['jwt'] ??
+          data['authorization'];
 
-      if (token == null || (token as String).isEmpty) {
-        throw AuthException('Login muvaffaqiyatli, lekin token topilmadi');
+      if (token is! String || token.isEmpty) {
+        throw const AuthException(
+          'Login muvaffaqiyatli, lekin token topilmadi',
+        );
       }
-      return token as String;
+      return token;
     }
 
     // Non-200 — extract server message if possible.
     String message = 'Login amalga oshmadi';
+    try {
+      final err = jsonDecode(response.body) as Map<String, dynamic>;
+      message = (err['message'] ?? err['error'] ?? message) as String;
+    } catch (_) {
+      if (response.body.isNotEmpty) message = response.body;
+    }
+    throw AuthException(message);
+  }
+
+  // ── Credentials ──────────────────────────────────────────────────────────
+
+  /// Changes the signed-in user's password.
+  ///
+  /// Moved here from the profile screen, which was building its own `Uri` and
+  /// duplicating the base host.
+  ///
+  /// NOTE: the endpoint takes the new password as a **query parameter**, so it
+  /// ends up in server access logs and any proxy in between. That is a backend
+  /// contract this method only mirrors — worth moving to a request body.
+  Future<void> changePassword(String newPassword) async {
+    final token = await getToken();
+    if (token == null) {
+      throw const AuthException('Sessiya tugagan, qaytadan kiring');
+    }
+
+    late http.Response response;
+    try {
+      response = await http
+          .put(
+            AppConfig.changeCredentialsUri.replace(
+              queryParameters: {'password': newPassword},
+            ),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 15));
+    } on SocketException {
+      throw const AuthException('Server topilmadi. Tarmoqni tekshiring.');
+    } on TimeoutException {
+      throw const AuthException('Ulanish vaqti tugadi.');
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const AuthException('Sessiya tugagan, qaytadan kiring');
+    }
+
+    String message = "Parolni o'zgartirib bo'lmadi";
     try {
       final err = jsonDecode(response.body) as Map<String, dynamic>;
       message = (err['message'] ?? err['error'] ?? message) as String;

@@ -1,16 +1,18 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+
+import 'package:wm_mobile/core/navigation/app_routes.dart';
+import 'package:wm_mobile/core/theme/app_colors.dart';
+import 'package:wm_mobile/core/web/authed_web_view.dart';
+import 'package:wm_mobile/core/widgets/press_scale.dart';
 import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/auth/presentation/pages/login_page.dart';
-import 'package:flutter/gestures.dart';
 
+/// The "Jihozlar" tab: the web console, embedded.
+///
+/// All the WebView plumbing now lives in [AuthedWebView]; this screen is just
+/// the tab's chrome and its logout policy.
 class ToolsScreen extends StatefulWidget {
-  const ToolsScreen({
-    super.key,
-    required this.initialUri,
-    this.authToken,
-  });
+  const ToolsScreen({super.key, required this.initialUri, this.authToken});
 
   final Uri initialUri;
   final String? authToken;
@@ -20,160 +22,83 @@ class ToolsScreen extends StatefulWidget {
 }
 
 class _ToolsScreenState extends State<ToolsScreen> {
-  late final WebViewController _controller;
-  bool _loading = true;
-  String? _errorMessage;
+  final GlobalKey<AuthedWebViewState> _webViewKey =
+      GlobalKey<AuthedWebViewState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController();
-    _setupWebView();
-  }
-
-  Future<void> _setupWebView() async {
-    await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
-    await _controller.setBackgroundColor(Colors.transparent);
-
-    await _controller.addJavaScriptChannel(
-      'FlutterAuthChannel',
-      onMessageReceived: (JavaScriptMessage message) {
-        if (message.message == 'session_expired') {
-          _handleImmediateLogout();
-        }
-      },
-    );
-
-    await _controller.setNavigationDelegate(
-      NavigationDelegate(
-        onPageStarted: (String url) async => await _injectAuthViaJS(),
-        onPageFinished: (String url) => setState(() => _loading = false),
-        onWebResourceError: (WebResourceError error) {
-          setState(() {
-            _loading = false;
-            _errorMessage = "Sahifani yuklashda xatolik yuz berdi (${error.errorCode})";
-          });
-        },
-      ),
-    );
-
-    await _controller.loadRequest(widget.initialUri);
-  }
-
-  void _handleImmediateLogout() async {
+  Future<void> _handleSessionExpired() async {
     await AuthService.instance.clearAuth();
     if (!mounted) return;
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-    );
-  }
-
-  Future<void> _injectAuthViaJS() async {
-    if (widget.authToken == null) return;
-
-    final jsCode = '''
-      (function() {
-        const baseHost = '${widget.initialUri.host}';
-        const basePort = '${widget.initialUri.port}' ? ':' + '${widget.initialUri.port}' : '';
-        const protocol = '${widget.initialUri.scheme}://';
-        const prodBaseUrl = protocol + baseHost + basePort;
-    
-        window.AUTH_TOKEN = '${widget.authToken}';
-        window.API_BASE_URL = prodBaseUrl;
-        
-        const cookieFlags = '; path=/; max-age=2592000; SameSite=Lax';
-        document.cookie = 'auth_token=${widget.authToken}' + cookieFlags;
-        document.cookie = 'token=${widget.authToken}' + cookieFlags;
-        
-        try {
-          localStorage.setItem('auth_token', '${widget.authToken}');
-          localStorage.setItem('token', '${widget.authToken}');
-        } catch(e) {}
-      })();
-    ''';
-
-    await _controller.runJavaScript(jsCode);
-  }
-
-  Future<void> _handleRefresh() async {
-    setState(() {
-      _errorMessage = null;
-    });
-    await _controller.reload();
+    Navigator.of(
+      context,
+    ).pushAndRemoveUntil(appRoute<void>(const LoginPage()), (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (didPop, result) async {
-              if (didPop) return;
-
-              if (await _controller.canGoBack()) {
-                await _controller.goBack();
-              } else {
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-            child: Positioned.fill(
-              child: WebViewWidget(
-                controller: _controller,
-                gestureRecognizers: {
-                  Factory<VerticalDragGestureRecognizer>(
-                        () => VerticalDragGestureRecognizer(),
-                  ),
-                },
-              ),
+    return Stack(
+      children: [
+        // Rounded top corners let the gradient shell frame the web content
+        // instead of the page running edge to edge under the header.
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: AuthedWebView(
+              key: _webViewKey,
+              initialUri: widget.initialUri,
+              authToken: widget.authToken,
+              onSessionExpired: _handleSessionExpired,
+              handleBackNavigation: true,
             ),
           ),
-          if (_loading)
-            const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            ),
-          if (_errorMessage != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.white70),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _handleRefresh,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Qayta urinish'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          Positioned(
-            right: 16,
-            bottom: 80,
-            child: FloatingActionButton.small(
-              onPressed: _handleRefresh,
-              backgroundColor: const Color(0xFF0D47A1),
-              child: const Icon(Icons.refresh, color: Colors.white),
-            ),
+        ),
+        Positioned(
+          right: 18,
+          bottom: 104,
+          child: _RefreshButton(
+            onTap: () => _webViewKey.currentState?.reload(),
           ),
-        ],
-      )
+        ),
+      ],
+    );
+  }
+}
+
+class _RefreshButton extends StatelessWidget {
+  const _RefreshButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PressScale(
+      onTap: onTap,
+      scale: 0.9,
+      child: Container(
+        height: 46,
+        width: 46,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.blue, AppColors.indigo],
+          ),
+          border: Border.all(color: AppColors.glassBorderStrong),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.refresh_rounded,
+          color: AppColors.textPrimary,
+          size: 22,
+        ),
+      ),
     );
   }
 }
