@@ -27,6 +27,7 @@ class GradientButton extends StatefulWidget {
     this.isLoading = false,
     this.variant = ButtonVariant.primary,
     this.expand = true,
+    this.padding = const EdgeInsets.symmetric(vertical: 17, horizontal: 24),
   });
 
   final String label;
@@ -35,6 +36,7 @@ class GradientButton extends StatefulWidget {
   final bool isLoading;
   final ButtonVariant variant;
   final bool expand;
+  final EdgeInsetsGeometry padding;
 
   @override
   State<GradientButton> createState() => _GradientButtonState();
@@ -42,10 +44,7 @@ class GradientButton extends StatefulWidget {
 
 class _GradientButtonState extends State<GradientButton>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _sheen = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2600),
-  );
+  late final AnimationController _sheen;
 
   bool get _sheenEnabled =>
       widget.variant == ButtonVariant.primary &&
@@ -55,6 +54,13 @@ class _GradientButtonState extends State<GradientButton>
   @override
   void initState() {
     super.initState();
+    // Created up front: if this were lazy, a button whose sheen never ran (any
+    // glass, danger or disabled one) would first build the controller inside
+    // dispose(), where looking up the ticker's ancestors throws.
+    _sheen = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    );
     if (_sheenEnabled) _sheen.repeat();
   }
 
@@ -139,13 +145,7 @@ class _GradientButtonState extends State<GradientButton>
                       ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 17,
-                    horizontal: 24,
-                  ),
-                  child: _buildContent(),
-                ),
+                Padding(padding: widget.padding, child: _buildContent()),
               ],
             ),
           ),
@@ -172,13 +172,17 @@ class _GradientButtonState extends State<GradientButton>
                 Icon(widget.icon, size: 19, color: _foreground),
                 const SizedBox(width: 10),
               ],
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: _foreground,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+              Flexible(
+                child: Text(
+                  widget.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _foreground,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
             ],

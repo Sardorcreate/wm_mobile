@@ -10,8 +10,9 @@ import 'package:wm_mobile/features/auth/presentation/pages/login_page.dart';
 ///
 /// - Validates the token immediately on first build.
 /// - Re-validates every [checkInterval] (default 5 minutes).
-/// - On expiry (server returns 401/403), navigates to [LoginPage] and clears
-///   stored credentials, regardless of which route is currently active.
+/// - On expiry, navigates to [LoginPage] and clears stored credentials,
+///   regardless of which route is currently active. Expiry is reported both by
+///   these checks and by any API call that fails to refresh.
 ///
 /// Network failures (no connectivity, timeout) are ignored — the user stays
 /// logged in and the next timer tick will retry.
@@ -40,18 +41,24 @@ class AuthGuard extends StatefulWidget {
 
 class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
   Timer? _timer;
+  StreamSubscription<void>? _expiry;
   bool _isChecking = false;
+  bool _hasExpired = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _expiry = AuthService.instance.onSessionExpired.listen(
+      (_) => _handleExpiry(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startPeriodicCheck());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _expiry?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -73,20 +80,18 @@ class _AuthGuardState extends State<AuthGuard> with WidgetsBindingObserver {
     _isChecking = true;
 
     try {
-      final token = await AuthService.instance.getToken();
-      if (token == null) {
-        _handleExpiry();
-        return;
-      }
-
-      final result = await AuthService.instance.validateToken(token);
-      if (result == false) _handleExpiry();
+      final result = await AuthService.instance.validateSession();
+      if (result == false) await _handleExpiry();
     } finally {
       _isChecking = false;
     }
   }
 
   Future<void> _handleExpiry() async {
+    // A failed check and a failed request can both report the same expiry.
+    if (_hasExpired) return;
+    _hasExpired = true;
+
     _timer?.cancel();
     await AuthService.instance.clearAuth();
 

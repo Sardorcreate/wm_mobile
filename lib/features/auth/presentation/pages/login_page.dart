@@ -57,15 +57,10 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      final token = await AuthService.instance.login(
+      await AuthService.instance.signIn(
         _loginController.text.trim(),
         _passwordController.text,
-      );
-
-      await AuthService.instance.saveToken(
-        token,
         rememberMe: _rememberMe,
-        login: _loginController.text.trim(),
       );
 
       if (!mounted) return;
@@ -82,10 +77,10 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       AppSnackBar.error(context, e.message);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      AppSnackBar.error(context, 'Xatolik yuz berdi');
+      AppSnackBar.error(context, 'Kutilmagan xatolik: $error');
     }
   }
 

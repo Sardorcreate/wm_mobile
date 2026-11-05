@@ -151,6 +151,10 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   Future<void> _openUrl(Uri url) async {
+    // The WebView only ever gets the access token, so make sure it's a live one.
+    // If the session is over, AuthGuard is already on its way to the login page.
+    if (await AuthService.instance.validateSession() == false) return;
+
     final token = await AuthService.instance.getToken();
     if (!mounted) return;
 

@@ -40,8 +40,8 @@ void main() {
 
     test('keeps an explicit non-default port', () {
       expect(
-        WebAuthBridge.origin(Uri.parse('http://10.224.81.171:8080/exist.html')),
-        'http://10.224.81.171:8080',
+        WebAuthBridge.origin(Uri.parse('http://10.82.64.171:8080/exist.html')),
+        'http://10.82.64.171:8080',
       );
     });
   });

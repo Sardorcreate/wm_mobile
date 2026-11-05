@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:wm_mobile/core/theme/app_colors.dart';
 import 'package:wm_mobile/core/theme/app_motion.dart';
@@ -21,6 +22,9 @@ class AppTextField extends StatefulWidget {
     this.textInputAction,
     this.onSubmitted,
     this.autofillHints,
+    this.keyboardType,
+    this.inputFormatters,
+    this.onChanged,
   });
 
   final TextEditingController controller;
@@ -35,6 +39,9 @@ class AppTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final Iterable<String>? autofillHints;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onChanged;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -100,6 +107,9 @@ class _AppTextFieldState extends State<AppTextField> {
         textInputAction: widget.textInputAction,
         onFieldSubmitted: widget.onSubmitted,
         autofillHints: widget.autofillHints,
+        keyboardType: widget.keyboardType,
+        inputFormatters: widget.inputFormatters,
+        onChanged: widget.onChanged,
         style: const TextStyle(color: AppColors.textPrimary, fontSize: 15.5),
         cursorColor: AppColors.accentGlow,
         decoration: InputDecoration(

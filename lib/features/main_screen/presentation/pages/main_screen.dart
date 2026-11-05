@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'package:wm_mobile/core/config/app_config.dart';
 import 'package:wm_mobile/core/theme/app_motion.dart';
-import 'package:wm_mobile/features/auth/controller/auth_service.dart';
 import 'package:wm_mobile/features/main_screen/presentation/widgets/app_nav_bar.dart';
 import 'package:wm_mobile/features/main_screen/presentation/widgets/custom_header.dart';
 import 'profile/presentation/pages/profile_screen.dart';
 import 'scanner/presentation/pages/scanner.dart';
 import 'tools/presentation/pages/tools_screen.dart';
 
-/// Tab shell.
-///
-/// The three destinations are built once, after the token resolves, and then
-/// kept alive in an [IndexedStack]. The old version rebuilt the list — and with
-/// it a fresh `Uri` for the WebView — on every `setState`, which re-triggered
-/// WebView work on each tab change.
+/// Tab shell. The three destinations are kept alive in an [IndexedStack].
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -35,44 +28,15 @@ class _MainScreenState extends State<MainScreen>
   /// Direction of the last tab change; drives which way content slides in.
   int _direction = 1;
 
-  bool _tokenResolved = false;
-  String? _token;
-
-  /// Built once so the WebView is never handed a new `Uri` instance.
-  Uri? _toolsUri;
-
   late final AnimationController _switchController = AnimationController(
     vsync: this,
     duration: AppMotion.medium,
   )..value = 1;
 
   @override
-  void initState() {
-    super.initState();
-    _buildScreens();
-  }
-
-  @override
   void dispose() {
     _switchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _buildScreens() async {
-    String? token;
-    try {
-      token = await AuthService.instance.getToken();
-    } catch (_) {
-      token = null;
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _tokenResolved = true;
-      _token = token;
-      _toolsUri = AppConfig.toolsUri(token: token);
-    });
   }
 
   void _onNavTap(int index) {
@@ -112,22 +76,12 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Widget _buildBody() {
-    if (!_tokenResolved) {
-      return const Center(
-        child: SizedBox(
-          height: 32,
-          width: 32,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
-        ),
-      );
-    }
-
     final enter = CurvedAnimation(
       parent: _switchController,
       curve: AppMotion.emphasized,
     );
 
-    // IndexedStack keeps every tab's state (scroll position, WebView history)
+    // IndexedStack keeps every tab's state (scroll position, search results)
     // while the transition animates only the visible one. The scanner is told
     // when it is off-screen so it can release the camera instead of burning
     // battery behind the other tabs.
@@ -141,7 +95,7 @@ class _MainScreenState extends State<MainScreen>
         child: IndexedStack(
           index: _selectedIndex,
           children: [
-            ToolsScreen(initialUri: _toolsUri!, authToken: _token),
+            const ToolsScreen(),
             ScannerScreen(isActive: _selectedIndex == 1),
             const ProfileScreen(),
           ],

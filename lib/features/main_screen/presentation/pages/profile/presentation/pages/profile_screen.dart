@@ -67,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    await AuthService.instance.clearAuth();
+    await AuthService.instance.signOut();
     if (!mounted) return;
 
     Navigator.of(
